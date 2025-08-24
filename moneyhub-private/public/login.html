@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +8,7 @@
   <style>
     body { background:#0b1220; color:#e9eef7; }
     .card { background:#132235; border:1px solid rgba(255,255,255,.06); border-radius:12px; }
+    h3 { color:#8db6ff; }
   </style>
 </head>
 <body class="d-flex align-items-center" style="min-height:100vh;">
@@ -16,12 +17,14 @@
       <div class="col-11 col-sm-8 col-md-6 col-lg-4">
         <div class="card p-4">
           <h3 class="mb-3">My Money Hub</h3>
-          <p class="text-secondary mb-4">Private sign-in</p>
+          <p class="text-secondary mb-4">Private sign-in required</p>
           <form method="post" action="/login" class="vstack gap-2">
             <input name="password" type="password" class="form-control" placeholder="Password" autofocus required />
             <button class="btn btn-primary mt-2" type="submit">Sign in</button>
           </form>
-          <p class="text-secondary mt-3 mb-0"><small>Tip: Add this site to your iPhone Home Screen after login.</small></p>
+          <p class="text-secondary mt-3 mb-0">
+            <small>Tip: once logged in, use <b>Share ▸ Add to Home Screen</b> on iPhone to install.</small>
+          </p>
         </div>
       </div>
     </div>
