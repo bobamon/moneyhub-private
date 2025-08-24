@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>My Money Hub</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d6efd">
+  <style>
+    :root { --pad: 14px; }
+    body { background:#0b1220; color:#e9eef7; }
+    .navbar { background:#0d1b2a !important; }
+    .card { background:#132235; border:1px solid rgba(255,255,255,.06); }
+    .form-control, .form-select { background:#0f1d2d; border-color:#21344d; color:#e9eef7; }
+    .form-control::placeholder{color:#9db3cf}
+    .table { --bs-table-color:#cfe0f6; --bs-table-bg:transparent; --bs-table-border-color:#243852; }
+    .badge-soft { background: rgba(13,110,253,.15); color:#8db6ff; }
+    .ring { border:2px solid rgba(255,255,255,.08); border-radius:12px; padding: var(--pad); }
+    .sticky-footer { position:sticky; bottom:0; background:#0d1b2a; border-top:1px solid rgba(255,255,255,.08); }
+    .progress { background:#0f1d2d; }
+    .pointer { cursor:pointer }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-dark px-3">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-wallet2 fs-4 text-primary"></i>
+    <span class="navbar-brand mb-0 h1">My Money Hub</span>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button id="exportBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-download"></i> Export</button>
+    <label class="btn btn-outline-light btn-sm mb-0">
+      <i class="bi bi-upload"></i> Import <input id="importFile" type="file" accept="application/json" hidden>
+    </label>
+  </div>
+</nav>
+
+<main class="container py-3">
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="card p-3 ring h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-secondary">Net Worth</span>
+            <i class="bi bi-graph-up text-success"></i>
+          </div>
+          <h3 class="mt-2" id="netWorth">$0</h3>
+          <small class="text-secondary">Assets − Debts</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 ring h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-secondary">Cash on Hand</span>
+            <i class="bi bi-cash-coin text-warning"></i>
+          </div>
+          <h3 class="mt-2" id="cashOnHand">$0</h3>
+          <small class="text-secondary">Not in bank</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 ring h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-secondary">Bank Balances</span>
+            <i class="bi bi-bank text-info"></i>
+          </div>
+          <h3 class="mt-2" id="bankTotal">$0</h3>
+          <small class="text-secondary" id="acctCount">0 accounts</small>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card p-3 ring h-100">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-secondary">Investments</span>
+            <i class="bi bi-currency-bitcoin text-primary"></i>
+          </div>
+          <h3 class="mt-2" id="investTotal">$0</h3>
+          <small class="text-secondary">Holdings value</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK ADD ROW -->
+  <section class="mb-4">
+    <div class="card p-3 ring">
+      <div class="row g-2 align-items-end">
+        <div class="col-6 col-md-3">
+          <label class="form-label">Cash on Hand</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input id="cashInput" type="number" step="0.01" class="form-control" placeholder="0.00" />
+            <button class="btn btn-primary" id="saveCash">Save</button>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label">Upcoming Bill</label>
+          <input id="billName" class="form-control" placeholder="e.g. Phone" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">Amount</label>
+          <input id="billAmt" type="number" step="0.01" class="form-control" placeholder="0.00" />
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">Due</label>
+          <input id="billDue" type="date" class="form-control" />
+        </div>
+        <div class="col-12 col-md-2 d-grid">
+          <button id="addBill" class="btn btn-outline-primary"><i class="bi bi-plus"></i> Add Bill</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- TABS -->
+  <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="pills-accounts-tab" data-bs-toggle="pill" data-bs-target="#pills-accounts" type="button" role="tab">Accounts</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-investments-tab" data-bs-toggle="pill" data-bs-target="#pills-investments" type="button" role="tab">Investments</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-transactions-tab" data-bs-toggle="pill" data-bs-target="#pills-transactions" type="button" role="tab">Transactions</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-bills-tab" data-bs-toggle="pill" data-bs-target="#pills-bills" type="button" role="tab">Upcoming</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-budget-tab" data-bs-toggle="pill" data-bs-target="#pills-budget" type="button" role="tab">Budgets</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pills-settings-tab" data-bs-toggle="pill" data-bs-target="#pills-settings" type="button" role="tab">Settings</button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="pills-tabContent">
+    <!-- Accounts -->
+    <div class="tab-pane fade show active" id="pills-accounts" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-12 col-lg-4">
+          <div class="card p-3 ring">
+            <h5 class="mb-3">Add Account</h5>
+            <div class="mb-2">
+              <label class="form-label">Name</label>
+              <input id="acctName" class="form-control" placeholder="e.g. Chase Checking" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Type</label>
+              <select id="acctType" class="form-select">
+                <option>Checking</option>
+                <option>Savings</option>
+                <option>Credit Card</option>
+                <option>Cash</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Balance</label>
+              <input id="acctBalance" type="number" step="0.01" class="form-control" placeholder="0.00" />
+            </div>
+            <div class="d-grid gap-2">
+              <button id="addAcct" class="btn btn-primary">Save Account</button>
+              <button id="resetDemo" class="btn btn-outline-light">Load Demo Data</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-8">
+          <div class="card p-3 ring">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Accounts</h5>
+              <span class="badge badge-soft" id="acctSummary">0 accounts</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle" id="acctTable">
+                <thead><tr><th>Name</th><th>Type</th><th class="text-end">Balance</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Investments -->
+    <div class="tab-pane fade" id="pills-investments" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-12 col-lg-4">
+          <div class="card p-3 ring">
+            <h5 class="mb-3">Add Holding</h5>
+            <div class="mb-2">
+              <label class="form-label">Symbol / Name</label>
+              <input id="invSymbol" class="form-control" placeholder="e.g. VTI or BTC" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Quantity</label>
+              <input id="invQty" type="number" step="0.0001" class="form-control" placeholder="0" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Price (manual)</label>
+              <input id="invPrice" type="number" step="0.01" class="form-control" placeholder="0.00" />
+            </div>
+            <div class="d-grid"><button id="addInv" class="btn btn-primary">Save Holding</button></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-8">
+          <div class="card p-3 ring">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Holdings</h5>
+              <span class="badge badge-soft" id="invSummary">0 holdings</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle" id="invTable">
+                <thead><tr><th>Symbol</th><th class="text-end">Qty</th><th class="text-end">Price</th><th class="text-end">Value</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="tab-pane fade" id="pills-transactions" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-12 col-xl-4">
+          <div class="card p-3 ring">
+            <h5 class="mb-3">Add Transaction</h5>
+            <div class="mb-2">
+              <label class="form-label">Date</label>
+              <input id="txDate" type="date" class="form-control" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Description</label>
+              <input id="txDesc" class="form-control" placeholder="e.g. Groceries" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Category</label>
+              <select id="txCat" class="form-select"></select>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label">Amount</label>
+                <input id="txAmt" type="number" step="0.01" class="form-control" placeholder="-45.65 (expense)" />
+              </div>
+              <div class="col-6">
+                <label class="form-label">Account</label>
+                <select id="txAcct" class="form-select"></select>
+              </div>
+            </div>
+            <div class="d-grid mt-3">
+              <button id="addTx" class="btn btn-primary">Save Transaction</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-8">
+          <div class="card p-3 ring">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0">Transactions</h5>
+              <div class="d-flex gap-2">
+                <select id="filterCat" class="form-select form-select-sm" style="width:160px"></select>
+                <select id="filterAcct" class="form-select form-select-sm" style="width:160px"></select>
+              </div>
+            </div>
+            <div class="table-responsive" style="max-height:420px;">
+              <table class="table table-sm align-middle" id="txTable">
+                <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Account</th><th class="text-end">Amount</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bills / Upcoming -->
+    <div class="tab-pane fade" id="pills-bills" role="tabpanel">
+      <div class="card p-3 ring">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Upcoming Expenses</h5>
+          <span class="text-secondary" id="billSummary">0 scheduled</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle" id="billTable">
+            <thead><tr><th>Bill</th><th>Due</th><th class="text-end">Amount</th><th>Status</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budgets -->
+    <div class="tab-pane fade" id="pills-budget" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-12 col-lg-4">
+          <div class="card p-3 ring">
+            <h5 class="mb-3">Add Monthly Budget</h5>
+            <div class="mb-2">
+              <label class="form-label">Category</label>
+              <input id="budCat" class="form-control" placeholder="e.g. Groceries" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Monthly Limit</label>
+              <input id="budAmt" type="number" step="0.01" class="form-control" placeholder="300" />
+            </div>
+            <div class="d-grid"><button id="addBudget" class="btn btn-primary">Save Budget</button></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-8">
+          <div class="card p-3 ring">
+            <h5 class="mb-3">Budgets</h5>
+            <div id="budList" class="vstack gap-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="tab-pane fade" id="pills-settings" role="tabpanel">
+      <div class="card p-3 ring">
+        <h5 class="mb-3">Settings & Info</h5>
+        <p class="text-secondary">This is a private, on-device web app. Add to your iPhone Home Screen (Share ▸ Add to Home Screen). Data is saved in your browser (localStorage) and can be exported/imported as JSON.</p>
+        <ul>
+          <li>Start simple with manual updates or CSV imports.</li>
+          <li>Later, connect banks with a small server using Plaid/Teller/Finicity (requires API keys).</li>
+          <li>Investments currently use manual prices; live quotes can be added later.</li>
+        </ul>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="rolloverBills">
+          <label class="form-check-label" for="rolloverBills">Auto-rollover paid bills to next month</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="sticky-footer py-2 px-3 d-flex justify-content-between align-items-center">
+  <small class="text-secondary">PWA enabled · Works offline after first load</small>
+  <small id="lastSaved" class="text-secondary">Not saved yet</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ---------------------------
+// Service worker (PWA)
+// ---------------------------
+(function(){
+  const swCode = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => self.clients.claim());
+    self.addEventListener('fetch', () => {});
+  `;
+  const blob = new Blob([swCode], {type:'text/javascript'});
+  const swURL = URL.createObjectURL(blob);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register(swURL);
+})();
+
+// ---------------------------
+// State & helpers
+// ---------------------------
+const SKEY = 'moneyhub_v1';
+let state = JSON.parse(localStorage.getItem(SKEY) || '{}');
+
+function initState(){
+  if (!state.accounts) state.accounts = [];
+  if (!state.transactions) state.transactions = [];
+  if (!state.investments) state.investments = [];
+  if (!state.bills) state.bills = [];
+  if (state.cashOnHand == null) state.cashOnHand = 0;
+  if (!state.categories) state.categories = ['Groceries','Dining','Gas','Rent','Utilities','Phone','Insurance','Subscriptions','Shopping','Income','Transfer'];
+  if (!state.budgets) state.budgets = [];
+  if (!state.settings) state.settings = {rolloverBills:false};
+}
+initState();
+
+function save(renderAfter=true){
+  localStorage.setItem(SKEY, JSON.stringify(state));
+  const ls = document.getElementById('lastSaved');
+  if (ls) ls.textContent = 'Saved ' + new Date().toLocaleString();
+  if (renderAfter) render();
+}
+
+function fmt(n){
+  const v = Number(n||0);
+  const sign = v < 0 ? '-' : '';
+  return sign + '$' + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function cid(){ return Math.random().toString(36).slice(2,9); }
+function monthKey(d){ const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,'0'); }
+function dateISOFrom(d){ return new Date(d).toISOString().slice(0,10); }
+function today(offset=0){ const d=new Date(); d.setDate(d.getDate()+offset); return dateISOFrom(d); }
+function firstOfNextMonth(){ const d=new Date(); d.setMonth(d.getMonth()+1,1); return dateISOFrom(d); }
+function clamp2(n){ return Number(Number(n||0).toFixed(2)); }
+
+// ---------------------------
+/* Demo data loader */
+function loadDemo(){
+  state = {
+    accounts:[
+      {id:cid(), name:'Chase Checking', type:'Checking', balance:1240.55},
+      {id:cid(), name:'Ally Savings', type:'Savings', balance:3500.00},
+      {id:cid(), name:'Cash', type:'Cash', balance:120.00}
+    ],
+    transactions:[
+      {id:cid(), date:today(-10), desc:'Gas', cat:'Gas', acct:'Chase Checking', amt:-42.70},
+      {id:cid(), date:today(-3), desc:'HEB Groceries', cat:'Groceries', acct:'Chase Checking', amt:-68.34},
+      {id:cid(), date:today(-1), desc:'DoorDash', cat:'Dining', acct:'Chase Checking', amt:-22.15},
+      {id:cid(), date:today(-1), desc:'Paycheck', cat:'Income', acct:'Chase Checking', amt:850.00}
+    ],
+    investments:[
+      {id:cid(), symbol:'VTI', qty:10, price:260},
+      {id:cid(), symbol:'BTC', qty:0.02, price:65000}
+    ],
+    bills:[
+      {id:cid(), name:'Phone', amt:45, due:dateISOFrom(new Date(new Date().setDate(new Date().getDate()+5))), paid:false},
+      {id:cid(), name:'Rent', amt:1200, due:firstOfNextMonth(), paid:false}
+    ],
+    cashOnHand:120,
+    categories:['Groceries','Dining','Gas','Rent','Utilities','Phone','Insurance','Subscriptions','Shopping','Income','Transfer'],
+    budgets:[{id:cid(), cat:'Groceries', monthly:300}, {id:cid(), cat:'Dining', monthly:120}],
+    settings:{rolloverBills:false}
+  };
+  save();
+}
+
+// ---------------------------
+// Rendering
+// ---------------------------
+function render(){
+  // Dashboard math
+  const bankTotal = state.accounts.filter(a=>a.type!=='Cash').reduce((s,a)=> s + Number(a.balance||0), 0);
+  const cashOnHand = Number(state.cashOnHand||0);
+  const invTotal = state.investments.reduce((s,h)=> s + (Number(h.qty||0)*Number(h.price||0)), 0);
+  const ccDebts = state.accounts.filter(a=>a.type==='Credit Card').reduce((s,a)=> s + Math.min(0, Number(a.balance||0)), 0);
+  const ccPos   = state.accounts.filter(a=>a.type==='Credit Card').reduce((s,a)=> s + Math.max(0, Number(a.balance||0)), 0);
+  const assets = bankTotal + cashOnHand + invTotal + ccPos;
+  const netWorth = assets + ccDebts;
+
+  setText('netWorth', fmt(netWorth));
+  setText('cashOnHand', fmt(cashOnHand));
+  setText('bankTotal', fmt(bankTotal));
+  setText('investTotal', fmt(invTotal));
+  setText('acctCount', state.accounts.length + ' accounts');
+
+  // Accounts table
+  const atb = qs('#acctTable tbody'); atb.innerHTML='';
+  state.accounts.forEach(a=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${esc(a.name)}</td>
+      <td>${esc(a.type)}</td>
+      <td class="text-end">${fmt(Number(a.balance||0))}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-light" data-edit-acct="${a.id}"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-del-acct="${a.id}"><i class="bi bi-trash"></i></button>
+      </td>`;
+    atb.appendChild(tr);
+  });
+  setText('acctSummary', state.accounts.length + ' accounts');
+
+  // Investments table
+  const itb = qs('#invTable tbody'); itb.innerHTML='';
+  state.investments.forEach(h=>{
+    const val = Number(h.qty||0)*Number(h.price||0);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${esc(h.symbol)}</td>
+      <td class="text-end">${Number(h.qty||0)}</td>
+      <td class="text-end">${fmt(Number(h.price||0))}</td>
+      <td class="text-end">${fmt(val)}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-light" data-edit-hold="${h.id}"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-del-hold="${h.id}"><i class="bi bi-trash"></i></button>
+      </td>`;
+    itb.appendChild(tr);
+  });
+  setText('invSummary', state.investments.length + ' holdings');
+
+  // Category selects
+  selFill('#txCat', state.categories);
+  selFill('#filterCat', ['All categories', ...state.categories], true);
+
+  // Account selects
+  selFill('#txAcct', state.accounts.map(a=>a.name));
+  selFill('#filterAcct', ['All accounts', ...state.accounts.map(a=>a.name)], true);
+
+  // Transactions list
+  renderTransactions();
+
+  // Bills
+  const btb = qs('#billTable tbody'); btb.innerHTML='';
+  state.bills.sort((a,b)=> a.due.localeCompare(b.due));
+  state.bills.forEach(b=>{
+    const dueDays = (new Date(b.due) - new Date())/(1000*60*60*24);
+    const badge = b.paid ? '<span class="badge bg-success">Paid</span>' :
+                  (dueDays <= 7 ? '<span class="badge bg-warning text-dark">Due soon</span>' :
+                                  '<span class="badge bg-secondary">Scheduled</span>');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${esc(b.name)}</td>
+      <td>${b.due}</td>
+      <td class="text-end">${fmt(Number(b.amt||0))}</td>
+      <td>${badge}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-success" data-bpay="${b.id}"><i class="bi bi-check2"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-bdel="${b.id}"><i class="bi bi-trash"></i></button>
+      </td>`;
+    btb.appendChild(tr);
+  });
+  setText('billSummary', state.bills.length + ' scheduled');
+
+  // Budgets list
+  const list = qs('#budList'); list.innerHTML='';
+  const nowKey = monthKey(new Date());
+  state.budgets.forEach(b=>{
+    const spent = state.transactions
+      .filter(t=> monthKey(t.date)===nowKey && t.cat===b.cat)
+      .reduce((s,t)=> s + Math.min(0, Number(t.amt||0)), 0) * -1;
+    const pct = Math.min(100, Math.round((spent / Number(b.monthly||1))*100));
+    const wrap = document.createElement('div');
+    wrap.className = 'p-2 ring';
+    wrap.innerHTML = `
+      <div class="d-flex justify-content-between mb-1">
+        <strong>${esc(b.cat)}</strong><span>${fmt(spent)} / ${fmt(Number(b.monthly||0))}</span>
+      </div>
+      <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar ${pct>=100?'bg-danger':'bg-primary'}" style="width:${pct}%"></div>
+      </div>
+      <div class="text-end mt-2">
+        <button class="btn btn-sm btn-outline-light" data-bedit="${b.id}"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-brem="${b.id}"><i class="bi bi-trash"></i></button>
+      </div>`;
+    list.appendChild(wrap);
+  });
+
+  // Settings toggles to UI
+  const roll = qs('#rolloverBills');
+  if (roll) roll.checked = !!state.settings.rolloverBills;
+}
+
+function renderTransactions(){
+  const ftCat = (qs('#filterCat')?.value || '');
+  const ftAcct = (qs('#filterAcct')?.value || '');
+  const tb = qs('#txTable tbody'); tb.innerHTML='';
+
+  let rows = [...state.transactions];
+  if (ftCat && ftCat !== 'All categories') rows = rows.filter(t=> t.cat===ftCat);
+  if (ftAcct && ftAcct !== 'All accounts') rows = rows.filter(t=> t.acct===ftAcct);
+  rows.sort((a,b)=> a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+
+  rows.forEach(t=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t.date}</td>
+      <td>${esc(t.desc)}</td>
+      <td>${esc(t.cat)}</td>
+      <td>${esc(t.acct)}</td>
+      <td class="text-end ${Number(t.amt)<0?'text-danger':'text-success'}">${fmt(Number(t.amt||0))}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-light" data-edit-tx="${t.id}"><i class="bi bi-pencil"></i></button>
+        <button class="btn btn-sm btn-outline-danger" data-del-tx="${t.id}"><i class="bi bi-trash"></i></button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ---------------------------
+// DOM helpers
+// ---------------------------
+function qs(sel){ return document.querySelector(sel); }
+function setText(id, txt){ const el = (id.startsWith('#')?qs(id):document.getElementById(id)); if (el) el.textContent = txt; }
+function selFill(sel, values, addAll=false){
+  const el = qs(sel); if(!el) return;
+  el.innerHTML='';
+  values.forEach((v,i)=>{
+    const opt = document.createElement('option');
+    opt.textContent = v;
+    if(addAll && i===0) opt.value = ''; // "All ..." sentinel
+    el.appendChild(opt);
+  });
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+// ---------------------------
+// Event bindings
+// ---------------------------
+// Accounts
+document.addEventListener('click', (e)=>{
+  const t = e.target.closest('button');
+  if (!t) return;
+
+  // Account delete
+  if (t.dataset.delAcct){
+    const id = t.dataset.delAcct;
+    state.accounts = state.accounts.filter(a=>a.id!==id);
+    save();
+  }
+  // Account edit (simple prompts)
+  if (t.dataset.editAcct){
+    const a = state.accounts.find(x=>x.id===t.dataset.editAcct);
+    if (!a) return;
+    const name = prompt('Account name:', a.name);
+    if (name==null) return;
+    const type = prompt('Type (Checking/Savings/Credit Card/Cash/Other):', a.type);
+    if (type==null) return;
+    const bal = prompt('Balance (number):', a.balance);
+    if (bal==null) return;
+    a.name = name.trim(); a.type = type.trim(); a.balance = clamp2(bal);
+    save();
+  }
+
+  // Holding delete
+  if (t.dataset.delHold){
+    state.investments = state.investments.filter(h=>h.id!==t.dataset.delHold);
+    save();
+  }
+  // Holding edit
+  if (t.dataset.editHold){
+    const h = state.investments.find(x=>x.id===t.dataset.editHold);
+    if (!h) return;
+    const s = prompt('Symbol/Name:', h.symbol); if (s==null) return;
+    const q = prompt('Quantity:', h.qty); if (q==null) return;
+    const p = prompt('Price:', h.price); if (p==null) return;
+    h.symbol = s.trim(); h.qty = Number(q||0); h.price = clamp2(p);
+    save();
+  }
+
+  // Transaction delete
+  if (t.dataset.delTx){
+    state.transactions = state.transactions.filter(x=>x.id!==t.dataset.delTx);
+    save();
+  }
+  // Transaction edit
+  if (t.dataset.editTx){
+    const x = state.transactions.find(y=>y.id===t.dataset.editTx);
+    if (!x) return;
+    const d = prompt('Date (YYYY-MM-DD):', x.date); if (d==null) return;
+    const desc = prompt('Description:', x.desc); if (desc==null) return;
+    const cat = prompt('Category:', x.cat); if (cat==null) return;
+    const acct = prompt('Account:', x.acct); if (acct==null) return;
+    const amt = prompt('Amount (use - for expense):', x.amt); if (amt==null) return;
+    x.date = d; x.desc = desc; x.cat = cat; x.acct = acct; x.amt = clamp2(amt);
+    save();
+  }
+
+  // Bills: pay & delete
+  if (t.dataset.bpay){
+    const b = state.bills.find(z=>z.id===t.dataset.bpay);
+    if (!b) return;
+    b.paid = true;
+    if (state.settings.rolloverBills){
+      // create next-month copy (unpaid)
+      const nd = new Date(b.due); nd.setMonth(nd.getMonth()+1);
+      state.bills.push({id:cid(), name:b.name, amt:b.amt, due:dateISOFrom(nd), paid:false});
+    }
+    save();
+  }
+  if (t.dataset.bdel){
+    state.bills = state.bills.filter(z=>z.id!==t.dataset.bdel);
+    save();
+  }
+
+  // Budgets edit/remove
+  if (t.dataset.bedit){
+    const b = state.budgets.find(z=>z.id===t.dataset.bedit);
+    if (!b) return;
+    const cat = prompt('Budget category:', b.cat); if (cat==null) return;
+    const m = prompt('Monthly limit:', b.monthly); if (m==null) return;
+    b.cat = cat.trim(); b.monthly = clamp2(m);
+    save();
+  }
+  if (t.dataset.brem){
+    state.budgets = state.budgets.filter(z=>z.id!==t.dataset.brem);
+    save();
+  }
+});
+
+// Add Account
+qs('#addAcct')?.addEventListener('click', ()=>{
+  const name = qs('#acctName').value.trim();
+  const type = qs('#acctType').value.trim();
+  const bal  = clamp2(qs('#acctBalance').value);
+  if (!name) return alert('Account name is required.');
+  state.accounts.push({id:cid(), name, type, balance:bal});
+  qs('#acctName').value=''; qs('#acctBalance').value='';
+  save();
+});
+
+// Demo data
+qs('#resetDemo')?.addEventListener('click', loadDemo);
+
+// Save Cash on Hand
+qs('#saveCash')?.addEventListener('click', ()=>{
+  const val = clamp2(qs('#cashInput').value);
+  state.cashOnHand = val;
+  // also reflect in a Cash account if present
+  const cashAcct = state.accounts.find(a=>a.type==='Cash' || /cash/i.test(a.name));
+  if (cashAcct) cashAcct.balance = val;
+  save();
+});
+
+// Add Holding
+qs('#addInv')?.addEventListener('click', ()=>{
+  const symbol = qs('#invSymbol').value.trim();
+  const qty = Number(qs('#invQty').value||0);
+  const price = clamp2(qs('#invPrice').value);
+  if (!symbol) return alert('Enter a symbol or name.');
+  state.investments.push({id:cid(), symbol, qty, price});
+  qs('#invSymbol').value=''; qs('#invQty').value=''; qs('#invPrice').value='';
+  save();
+});
+
+// Add Transaction
+qs('#addTx')?.addEventListener('click', ()=>{
+  const date = qs('#txDate').value || today();
+  const desc = qs('#txDesc').value.trim() || 'Transaction';
+  const cat  = qs('#txCat').value || 'Other';
+  const acct = qs('#txAcct').value || (state.accounts[0]?.name||'Unknown');
+  const amt  = clamp2(qs('#txAmt').value);
+  if (isNaN(amt)) return alert('Enter a numeric amount.');
+  state.transactions.push({id:cid(), date, desc, cat, acct, amt});
+  // Adjust linked account balance
+  const a = state.accounts.find(x=>x.name===acct);
+  if (a) a.balance = clamp2(Number(a.balance||0) + amt);
+  // Clear inputs
+  qs('#txDesc').value=''; qs('#txAmt').value='';
+  save();
+});
+
+// Filters
+qs('#filterCat')?.addEventListener('change', renderTransactions);
+qs('#filterAcct')?.addEventListener('change', renderTransactions);
+
+// Bills quick add row
+qs('#addBill')?.addEventListener('click', ()=>{
+  const name = qs('#billName').value.trim();
+  const amt  = clamp2(qs('#billAmt').value);
+  const due  = qs('#billDue').value || firstOfNextMonth();
+  if (!name) return alert('Bill name required.');
+  state.bills.push({id:cid(), name, amt, due, paid:false});
+  qs('#billName').value=''; qs('#billAmt').value=''; qs('#billDue').value='';
+  save();
+});
+
+// Add Budget
+qs('#addBudget')?.addEventListener('click', ()=>{
+  const cat = qs('#budCat').value.trim();
+  const amt = clamp2(qs('#budAmt').value);
+  if (!cat) return alert('Budget category required.');
+  state.budgets.push({id:cid(), cat, monthly:amt});
+  qs('#budCat').value=''; qs('#budAmt').value='';
+  save();
+});
+
+// Settings toggles
+qs('#rolloverBills')?.addEventListener('change', (e)=>{
+  state.settings.rolloverBills = !!e.target.checked;
+  save(false);
+});
+
+// ---------------------------
+// Export / Import
+// ---------------------------
+qs('#exportBtn')?.addEventListener('click', ()=>{
+  const data = JSON.stringify(state, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `moneyhub_backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+qs('#importFile')?.addEventListener('change', async (e)=>{
+  const f = e.target.files?.[0];
+  if (!f) return;
+  try {
+    const text = await f.text();
+    const obj = JSON.parse(text);
+    state = obj;
+    initState();
+    save();
+    alert('Import complete!');
+  } catch(err){
+    console.error(err);
+    alert('Import failed: invalid file.');
+  } finally {
+    e.target.value = '';
+  }
+});
+
+// ---------------------------
+// CSV Import for Transactions
+// Expected headers: date,description,amount,category,account
+// ---------------------------
+const csvInput = document.createElement('input');
+csvInput.type = 'file';
+csvInput.accept = '.csv';
+csvInput.style.display = 'none';
+document.body.appendChild(csvInput);
+
+const csvButtonMount = setInterval(()=>{
+  const ph = document.getElementById('txTable')?.closest('.card')?.previousElementSibling;
+  const addPane = document.querySelector('#pills-transactions .card');
+}, 500);
+
+// Attach to visible "Import CSV" button if present in markup
+document.getElementById('csvTx')?.addEventListener('change', handleCsvFile);
+
+function handleCsvFile(e){
+  const f = e.target.files?.[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseCSV(reader.result || '');
+    if (!rows.length) { alert('No rows found.'); return; }
+    // normalize headers
+    const header = rows[0].map(h=> String(h||'').trim().toLowerCase());
+    const idx = {
+      date: header.indexOf('date'),
+      description: header.indexOf('description'),
+      amount: header.indexOf('amount'),
+      category: header.indexOf('category'),
+      account: header.indexOf('account')
+    };
+    if (Object.values(idx).some(v=>v<0)){
+      alert('CSV must include headers: date,description,amount,category,account');
+      return;
+    }
+    for (let r=1; r<rows.length; r++){
+      const row = rows[r];
+      if (!row || !row.length) continue;
+      const t = {
+        id: cid(),
+        date: String(row[idx.date]||today()).slice(0,10),
+        desc: String(row[idx.description]||'').trim() || 'Transaction',
+        cat: String(row[idx.category]||'Other').trim() || 'Other',
+        acct: String(row[idx.account]||'').trim() || (state.accounts[0]?.name || 'Unknown'),
+        amt: clamp2(row[idx.amount]||0)
+      };
+      state.transactions.push(t);
+      const a = state.accounts.find(x=>x.name===t.acct);
+      if (a) a.balance = clamp2(Number(a.balance||0) + Number(t.amt||0));
+    }
+    save();
+    alert('CSV import complete!');
+    e.target.value = '';
+  };
+  reader.readAsText(f);
+}
+
+function parseCSV(str){
+  // simple CSV parser (handles quoted commas)
+  const rows = [];
+  let row = [], cur = '', inQ = false;
+  for (let i=0;i<str.length;i++){
+    const ch = str[i];
+    if (inQ){
+      if (ch === '"'){
+        if (str[i+1] === '"'){ cur += '"'; i++; } // escaped quote
+        else inQ = false;
+      } else cur += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ','){ row.push(cur); cur=''; }
+      else if (ch === '\n' || ch === '\r'){
+        if (cur.length || row.length){ row.push(cur); rows.push(row); row=[]; cur=''; }
+        if (ch === '\r' && str[i+1] === '\n') i++; // CRLF
+      } else cur += ch;
+    }
+  }
+  if (cur.length || row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+
+// ---------------------------
+// Initial render
+// ---------------------------
+render();
+</script>
+</body>
+</html>
